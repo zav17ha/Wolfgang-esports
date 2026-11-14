@@ -45,6 +45,21 @@
     from { opacity: 0; }
     to { opacity: 1; }
   }
+  @keyframes claw-swipe {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+  /* Claw strike loop (9s): four scratches along the slits */
+  @keyframes claw-strike {
+    0% { stroke-dashoffset: 1; opacity: 1; }
+    2.5% { stroke-dashoffset: 0; opacity: 1; }
+    7%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  /* Continuous coin spin, independent of the strike loop */
+  @keyframes claw-spin {
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(360deg); }
+  }
   @keyframes emblem-in {
     from { opacity: 0; transform: scale(0.94); }
     to { opacity: 1; transform: none; }
@@ -155,6 +170,22 @@
   .anim-fade-down { animation: fade-down 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .anim-fade-in { animation: fade-in 0.8s ease both; }
   .anim-emblem { animation: emblem-in 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  /* Landing logo (ClawMark): claw-swipe reveal on load, repeating claw strikes, continuous slow coin spin */
+  .claw-swipe {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: claw-swipe 0.5s cubic-bezier(0.7, 0, 0.2, 1) both;
+  }
+  .claw-strike {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    opacity: 0;
+    animation: claw-strike 9s cubic-bezier(0.2, 0.7, 0.2, 1) infinite both;
+  }
+  .claw-spin {
+    transform-style: preserve-3d;
+    animation: claw-spin 10s linear infinite both;
+  }
   .anim-sweep { animation: sweep 0.75s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .mask-fade-b {
     mask-image: linear-gradient(to bottom, black 55%, transparent);

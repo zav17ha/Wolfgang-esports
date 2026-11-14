@@ -7,7 +7,8 @@ import { ArrowDown, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { InteractiveField } from "@/components/site/interactive-field";
-import { HudCorners, WolfMark } from "@/components/site/hud";
+import { HudCorners } from "@/components/site/hud";
+import { CLAW_LOOP_DELAY, ClawMark } from "@/components/site/claw-mark";
 
 type HeroStats = { titles: number; podiums: number; games: number };
 
@@ -21,14 +22,8 @@ export function Hero({ stats }: { stats: HeroStats }) {
   const sx = useSpring(mx, { stiffness: 260, damping: 28, mass: 0.4 });
   const sy = useSpring(my, { stiffness: 260, damping: 28, mass: 0.4 });
 
-  const rotateY = useTransform(sx, [-0.5, 0.5], [-16, 16]);
-  const rotateX = useTransform(sy, [-0.5, 0.5], [12, -12]);
-  const emblemX = useTransform(sx, [-0.5, 0.5], [-18, 18]);
-  const emblemY = useTransform(sy, [-0.5, 0.5], [-14, 14]);
   const glowX = useTransform(sx, [-0.5, 0.5], [40, -40]);
   const glowY = useTransform(sy, [-0.5, 0.5], [30, -30]);
-  const ringX = useTransform(sx, [-0.5, 0.5], [-30, 30]);
-  const ringY = useTransform(sy, [-0.5, 0.5], [-24, 24]);
   const textX = useTransform(sx, [-0.5, 0.5], [6, -6]);
 
   useEffect(() => {
@@ -131,12 +126,8 @@ export function Hero({ stats }: { stats: HeroStats }) {
         </motion.div>
 
         {/* Emblem */}
-        <div className="relative lg:col-span-6" style={{ perspective: 1200 }}>
-          <motion.div
-            aria-hidden
-            style={{ x: ringX, y: ringY }}
-            className="pointer-events-none absolute inset-0 grid place-items-center"
-          >
+        <div className="relative lg:col-span-6" style={{ perspective: 1400 }}>
+          <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
             <svg viewBox="0 0 400 400" className="w-[96%] max-w-[580px] animate-[spin_60s_linear_infinite] opacity-70">
               <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
               <circle cx="200" cy="200" r="168" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1" strokeDasharray="2 10" />
@@ -146,24 +137,17 @@ export function Hero({ stats }: { stats: HeroStats }) {
                 <line key={deg} x1="200" y1="0" x2="200" y2="16" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" transform={`rotate(${deg} 200 200)`} />
               ))}
             </svg>
-          </motion.div>
+          </div>
 
           <div className="anim-emblem relative mx-auto aspect-square w-full max-w-[560px]" style={{ animationDelay: "0.1s" }}>
             <div aria-hidden className="pointer-events-none absolute inset-[12%] rounded-full" style={{ background: "radial-gradient(circle, rgba(255,255,255,0.14), transparent 65%)" }} />
             <HudCorners size="size-6" className="opacity-60" />
             <span className="hud-label absolute top-3 left-10">WG // 01</span>
             <span className="hud-label absolute right-10 bottom-3">Sri Lanka · LK</span>
-            <motion.div
-              style={{ rotateX, rotateY, x: emblemX, y: emblemY, transformStyle: "preserve-3d" }}
-              className="absolute inset-0 will-change-transform"
-            >
-              <div className="absolute inset-0 grid place-items-center" style={{ transform: "translateZ(60px)" }}>
-                <WolfMark className="w-[66%] text-white" />
-              </div>
-              <div className="absolute inset-0 grid place-items-center" style={{ transform: "translateZ(-20px)" }}>
-                <WolfMark className="w-[66%] translate-x-3 translate-y-3 text-white/[0.06]" />
-              </div>
-            </motion.div>
+            {/* The logo stays in one place and spins slowly on its own vertical axis, like a coin */}
+            <div className="claw-spin absolute inset-0 grid place-items-center" style={{ animationDelay: `${CLAW_LOOP_DELAY}s` }}>
+              <ClawMark className="w-[66%] text-white" />
+            </div>
           </div>
         </div>
       </div>
