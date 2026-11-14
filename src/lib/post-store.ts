@@ -6,8 +6,9 @@ import type { PostInput } from "./format";
 /**
  * Where posts written from the admin dashboard are saved.
  *
- * - "blob":  Vercel Blob (used on Vercel; needs BLOB_READ_WRITE_TOKEN, which Vercel adds when you
- *            connect a Blob store to the project). Works on Vercel's read-only filesystem.
+ * - "blob":  Vercel Blob (used on Vercel's read-only filesystem). Connecting a Blob store to the project
+ *            gives the site one of: BLOB_READ_WRITE_TOKEN, a token under a custom prefix
+ *            (e.g. MYSTORE_READ_WRITE_TOKEN), or BLOB_STORE_ID (Vercel's newer OIDC sign-in). All work.
  * - "local": when running on your own computer, posts are written straight into content/posts/*.md
  *            and images into public/uploads/, so you can commit them to Git.
  * - "none":  deployed without a Blob store; publishing is disabled with a clear message.
@@ -20,8 +21,23 @@ export interface StoredPost extends PostInput {
   hidden?: boolean;
 }
 
+/** A Blob read-write token, wherever Vercel put it (default name, or a custom prefix chosen on connect). */
+function blobToken(): string | undefined {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  for (const [k, v] of Object.entries(process.env)) {
+    if (k.endsWith("_READ_WRITE_TOKEN") && v?.startsWith("vercel_blob_rw_")) return v;
+  }
+  return undefined;
+}
+
+/** Credentials passed to every Blob call. With BLOB_STORE_ID only, the SDK signs in via Vercel OIDC by itself. */
+function blobAuth(): { token?: string } {
+  const token = blobToken();
+  return token && !process.env.BLOB_READ_WRITE_TOKEN ? { token } : {};
+}
+
 export function storageMode(): StorageMode {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
+  if (blobToken() || process.env.BLOB_STORE_ID) return "blob";
   if (!process.env.VERCEL) return "local";
   return "none";
 }
@@ -66,7 +82,7 @@ async function blobEntries() {
   const out: { url: string; pathname: string; slug: string }[] = [];
   let cursor: string | undefined;
   do {
-    const res = await list({ prefix: BLOB_PREFIX, cursor, limit: 1000 });
+    const res = await list({ prefix: BLOB_PREFIX, cursor, limit: 1000, ...blobAuth() });
     for (const b of res.blobs) {
       // pathname looks like posts/<slug>__-<random>.json (random suffix keeps drafts unguessable)
       const m = b.pathname.match(/^posts\/(.+?)__/);
@@ -115,8 +131,9 @@ export async function savePost(post: PostInput, previousSlug?: string): Promise<
     addRandomSuffix: true,
     contentType: "application/json",
     cacheControlMaxAge: 60,
+    ...blobAuth(),
   });
-  if (stale.length) await del(stale.map((e) => e.url));
+  if (stale.length) await del(stale.map((e) => e.url), blobAuth());
   if (previousSlug && previousSlug !== post.slug) await hideRepoPost(previousSlug);
 }
 
@@ -125,7 +142,7 @@ async function hideRepoPost(slug: string) {
   const exists = await fs.stat(path.join(POSTS_DIR, `${slug}.md`)).then(() => true).catch(() => false);
   if (!exists) return;
   const marker: StoredPost = { slug, title: "", date: "", category: "", author: "", body: "", hidden: true, updatedAt: new Date().toISOString() };
-  await put(`${BLOB_PREFIX}${slug}__.json`, JSON.stringify(marker), { access: "public", addRandomSuffix: true, contentType: "application/json" });
+  await put(`${BLOB_PREFIX}${slug}__.json`, JSON.stringify(marker), { access: "public", addRandomSuffix: true, contentType: "application/json", ...blobAuth() });
 }
 
 export async function deletePost(slug: string): Promise<void> {
@@ -136,7 +153,7 @@ export async function deletePost(slug: string): Promise<void> {
   }
   const entries = await blobEntries();
   const mine = entries.filter((e) => e.slug === slug);
-  if (mine.length) await del(mine.map((e) => e.url));
+  if (mine.length) await del(mine.map((e) => e.url), blobAuth());
   await hideRepoPost(slug);
 }
 
@@ -158,6 +175,6 @@ export async function uploadImage(file: File): Promise<string> {
     await fs.writeFile(path.join(UPLOADS_DIR, name), Buffer.from(await file.arrayBuffer()));
     return `/uploads/${name}`;
   }
-  const blob = await put(`images/${base}.${ext}`, file, { access: "public", addRandomSuffix: true, contentType: file.type });
+  const blob = await put(`images/${base}.${ext}`, file, { access: "public", addRandomSuffix: true, contentType: file.type, ...blobAuth() });
   return blob.url;
 }

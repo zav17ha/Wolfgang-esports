@@ -42,8 +42,19 @@ function safeEqual(a: Uint8Array, b: Uint8Array) {
   return diff === 0;
 }
 
+/** What is wrong with the login setup, as plain messages (variable names only, never values). */
+export function authProblems(): string[] {
+  const problems: string[] = [];
+  if (!process.env.ADMIN_USERNAME?.trim()) problems.push("ADMIN_USERNAME is missing.");
+  if (!process.env.ADMIN_PASSWORD) problems.push("ADMIN_PASSWORD is missing.");
+  const secret = process.env.AUTH_SECRET ?? "";
+  if (!secret) problems.push("AUTH_SECRET is missing.");
+  else if (secret.length < 16) problems.push(`AUTH_SECRET is too short (${secret.length} characters, needs at least 16).`);
+  return problems;
+}
+
 export function authConfigured() {
-  return Boolean(process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD && (process.env.AUTH_SECRET?.length ?? 0) >= 16);
+  return authProblems().length === 0;
 }
 
 /** Constant-time check of the submitted username and password against the env values. */

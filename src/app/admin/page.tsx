@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 const MODE_NOTE = {
   blob: "Connected to Vercel Blob. Posts go live on the site within a few seconds of publishing.",
   local: "Running locally: posts are saved as Markdown in content/posts/ and images in public/uploads/. Commit them to publish.",
-  none: "Publishing is off: connect a Vercel Blob store to this project (Vercel → Storage → Blob), then redeploy.",
+  none: "Publishing is off: no Blob store reached this deployment. In Vercel → Storage, open your Blob store, connect it to this project with Production ticked, then redeploy.",
 } as const;
 
 export default async function AdminPage() {

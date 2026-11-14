@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HudCorners, WolfMark } from "@/components/site/hud";
 
-export function LoginForm({ configured, next }: { configured: boolean; next?: string }) {
+export function LoginForm({ problems, next }: { problems: string[]; next?: string }) {
+  const configured = problems.length === 0;
   const router = useRouter();
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
@@ -51,9 +52,15 @@ export function LoginForm({ configured, next }: { configured: boolean; next?: st
 
       {!configured && (
         <div className="mt-6 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-sm text-zinc-300">
-          Login isn&apos;t set up yet. Add <code className="font-mono text-white">ADMIN_USERNAME</code>,{" "}
-          <code className="font-mono text-white">ADMIN_PASSWORD</code> and <code className="font-mono text-white">AUTH_SECRET</code> to your
-          environment variables, then redeploy.
+          <p>Login isn&apos;t set up yet:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 font-mono text-xs text-white">
+            {problems.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+          <p className="mt-3">
+            Fix these in Vercel → Settings → Environment Variables (for the Production environment), then redeploy.
+          </p>
         </div>
       )}
 
