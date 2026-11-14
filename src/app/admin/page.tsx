@@ -11,8 +11,9 @@ import { DeleteButton, LogoutButton } from "@/components/admin/admin-actions";
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
+/** Shown only when something needs attention; nothing is shown when Blob storage is working. */
 const MODE_NOTE = {
-  blob: "Connected to Vercel Blob. Posts go live on the site within a few seconds of publishing.",
+  blob: null,
   local: "Running locally: posts are saved as Markdown in content/posts/ and images in public/uploads/. Commit them to publish.",
   none: "Publishing is off: no Blob store reached this deployment. In Vercel → Storage, open your Blob store, connect it to this project with Production ticked, then redeploy.",
 } as const;
@@ -36,10 +37,12 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <div className="mt-8 flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-zinc-400">
-        <span className={`mt-1.5 size-2 shrink-0 rounded-full ${mode === "none" ? "bg-zinc-500" : "anim-blink bg-white"}`} />
-        <p>{MODE_NOTE[mode]}</p>
-      </div>
+      {MODE_NOTE[mode] && (
+        <div className="mt-8 flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-zinc-400">
+          <span className={`mt-1.5 size-2 shrink-0 rounded-full ${mode === "none" ? "bg-zinc-500" : "anim-blink bg-white"}`} />
+          <p>{MODE_NOTE[mode]}</p>
+        </div>
+      )}
 
       <ul className="mt-8 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08]">
         {posts.length === 0 && <li className="p-10 text-center text-zinc-500">No posts yet. Write your first one.</li>}
