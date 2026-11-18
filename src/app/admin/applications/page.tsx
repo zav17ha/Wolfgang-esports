@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronDown, Download, MessageCircle } from "lucide-react";
 
-import { APPLICATION_TYPES, SECTIONS, formatAnswer, typeLabel } from "@/lib/apply";
+import { APPLICATION_TYPES, SECTIONS, formatAnswer, gamesOf, typeLabel } from "@/lib/apply";
 import { filterApplications } from "@/lib/apply-filter";
 import { listApplications } from "@/lib/application-store";
 import { storageMode } from "@/lib/blob";
@@ -25,7 +25,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   const mode = storageMode();
   const all = await listApplications();
   const apps = filterApplications(all, { type, game });
-  const games = [...new Set(all.map((a) => a.game))].sort((a, b) => a.localeCompare(b));
+  const games = [...new Set(all.flatMap((a) => gamesOf(a).map((g) => g.game)))].sort((a, b) => a.localeCompare(b));
 
   const href = (next: { type?: string; game?: string }) => {
     const q = new URLSearchParams();
@@ -129,9 +129,14 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                       {name}
                       {ign && <span className="font-normal text-zinc-400"> ({ign})</span>}
                     </p>
-                    <p className="text-sm text-zinc-500">
-                      {a.game} <span className="text-zinc-700">·</span> {a.platform} <span className="text-zinc-700">·</span> {fmtDate(a.submittedAt)}
-                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {gamesOf(a).map((g) => (
+                        <span key={`${g.platform}-${g.game}`} className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-xs text-zinc-300">
+                          {g.game} <span className="text-zinc-600">· {g.platform}</span>
+                        </span>
+                      ))}
+                      <span className="ml-1 text-xs text-zinc-500">{fmtDate(a.submittedAt)}</span>
+                    </div>
                   </div>
                   <ChevronDown className="hidden size-5 shrink-0 text-zinc-500 transition-transform group-open:rotate-180 sm:block" />
                 </summary>
@@ -165,7 +170,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     ))}
                   </div>
                   <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-5">
-                    <p className="text-xs text-zinc-500">All four confirmations were ticked when submitting.</p>
+                    <p className="text-xs text-zinc-500">All confirmations were ticked when submitting.</p>
                     <div className="flex gap-2">
                       {whatsapp && (
                         <Button asChild variant="outline" size="sm" className="h-9">

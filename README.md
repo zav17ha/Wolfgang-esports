@@ -59,7 +59,7 @@ The Markdown files in `content/posts/` always ship with the site. A post saved f
 
 ## Player & team applications
 
-The **/apply** page first asks whether someone is applying as an **Individual Player** or an **Existing Team**, then shows the rest of the form (the Team section only appears for teams). Progress is saved in the applicant's browser until they submit.
+The **/apply** page first asks whether someone is applying as an **Individual Player** or an **Existing Team**, then shows the rest of the form (the Team section only appears for teams). Individual players can choose several games; a team chooses one. Progress is saved in the applicant's browser until they submit.
 
 Submitted applications appear in **/admin → Applications**:
 

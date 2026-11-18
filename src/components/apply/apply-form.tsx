@@ -15,6 +15,9 @@ import {
   type ApplicationType,
   type Field,
   type Section,
+  MAX_GAMES,
+  multiGame,
+  pickKey,
   sectionsFor,
   validateApplication,
 } from "@/lib/apply";
@@ -22,11 +25,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HudCorners } from "@/components/site/hud";
 
-const DRAFT_KEY = "wg-apply-draft-v1";
+const DRAFT_KEY = "wg-apply-draft-v2";
 const PLATFORM_ICONS: Record<string, typeof Monitor> = { PC: Monitor, Mobile: Smartphone, Console: Gamepad2 };
 
-type Draft = { type: ApplicationType | ""; platform: string; game: string; gameOther: string; answers: Answers };
-const EMPTY: Draft = { type: "", platform: "", game: "", gameOther: "", answers: {} };
+type Draft = { type: ApplicationType | ""; picks: string[]; others: Record<string, string>; answers: Answers };
+const EMPTY: Draft = { type: "", picks: [], others: {}, answers: {} };
 
 const inputCls =
   "h-11 w-full rounded-md border bg-white/[0.02] px-3.5 text-[15px] text-white outline-none transition-colors placeholder:text-zinc-600 focus:border-white/50 focus:bg-white/[0.04]";
@@ -139,7 +142,10 @@ export function ApplyForm() {
                     key={t.value}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => setD((p) => ({ ...p, type: t.value }))}
+                    onClick={() =>
+                      // A team applies for one game: keep only the first if they had picked several.
+                      setD((p) => ({ ...p, type: t.value, picks: multiGame(t.value) ? p.picks : p.picks.slice(0, 1) }))
+                    }
                     className={cn(
                       "group relative flex items-start gap-4 overflow-hidden rounded-xl border p-5 text-left transition-colors duration-200",
                       on ? "border-white bg-white text-black" : "border-white/10 bg-white/[0.02] hover:border-white/30",
@@ -169,7 +175,11 @@ export function ApplyForm() {
                 className="overflow-hidden"
               >
                 <div id="f-game" className="pt-8">
-                  <Question label="Which game are you applying for?" error={errors.game}>
+                  <Question
+                    label={multiGame(d.type) ? "Which games are you applying for?" : "Which game is your team applying for?"}
+                    hint={multiGame(d.type) ? "Select all that apply." : "Choose one."}
+                    error={errors.game}
+                  >
                     <div className="space-y-5">
                       {PLATFORMS.map((pl) => {
                         const Icon = PLATFORM_ICONS[pl] ?? Gamepad2;
@@ -180,13 +190,20 @@ export function ApplyForm() {
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {GAMES[pl].map((g) => {
-                                const on = d.platform === pl && d.game === g;
+                                const key = pickKey(pl, g);
+                                const on = d.picks.includes(key);
                                 return (
                                   <button
                                     key={g}
                                     type="button"
                                     aria-pressed={on}
-                                    onClick={() => setD((p) => ({ ...p, platform: pl, game: g }))}
+                                    onClick={() =>
+                                      setD((p) => {
+                                        if (!multiGame(p.type)) return { ...p, picks: on ? [] : [key] };
+                                        if (on) return { ...p, picks: p.picks.filter((k) => k !== key) };
+                                        return p.picks.length >= MAX_GAMES ? p : { ...p, picks: [...p.picks, key] };
+                                      })
+                                    }
                                     className={cn(chipBase, on ? chipOn : chipOff)}
                                   >
                                     {on && <Check className="size-3.5" />}
@@ -195,11 +212,11 @@ export function ApplyForm() {
                                 );
                               })}
                             </div>
-                            {d.platform === pl && d.game === OTHER && (
+                            {d.picks.includes(pickKey(pl, OTHER)) && (
                               <input
                                 autoFocus
-                                value={d.gameOther}
-                                onChange={(e) => setD((p) => ({ ...p, gameOther: e.target.value }))}
+                                value={d.others[pl] ?? ""}
+                                onChange={(e) => setD((p) => ({ ...p, others: { ...p.others, [pl]: e.target.value } }))}
                                 placeholder={`Which ${pl} game?`}
                                 aria-label={`Other ${pl} game`}
                                 maxLength={120}
@@ -308,10 +325,13 @@ function SectionCard({ id, n, title, description, children }: { id: string; n: n
   );
 }
 
-function Question({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Question({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
   return (
     <div id={label.startsWith("What are") ? "f-type" : undefined}>
-      <p className="mb-3 text-[15px] font-medium text-zinc-200">{label}</p>
+      <p className="mb-3 text-[15px] font-medium text-zinc-200">
+        {label}
+        {hint && <span className="ml-2 text-sm font-normal text-zinc-500">{hint}</span>}
+      </p>
       {children}
       {error && <ErrorText>{error}</ErrorText>}
     </div>

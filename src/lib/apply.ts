@@ -68,13 +68,8 @@ export const SECTIONS: Section[] = [
     id: "gaming",
     title: "Gaming information",
     fields: [
-      { key: "gameId", label: "In-game ID / UID", type: "text", required: true },
-      { key: "currentRank", label: "Current rank", type: "text", required: true },
-      { key: "highestRank", label: "Highest rank achieved", type: "text", required: true },
-      { key: "mainRole", label: "Main role / position", type: "text", required: true },
-      { key: "secondaryRole", label: "Secondary role", type: "text" },
       { key: "experienceYears", label: "Years of gaming experience", type: "number", required: true, min: 0, max: 40 },
-      { key: "previousTeam", label: "Previous team / organization", type: "text", full: true },
+      { key: "previousTeam", label: "Previous team / organization", type: "text" },
       { key: "achievements", label: "Competitive achievements", type: "textarea", required: true, full: true, placeholder: "Tournaments, placements, rankings…" },
       { key: "highlightsLink", label: "Gameplay highlights link", type: "url", full: true, placeholder: "YouTube, Twitch, Google Drive…" },
     ],
@@ -127,7 +122,6 @@ export const SECTIONS: Section[] = [
     title: "Final confirmation",
     fields: [
       { key: "confirmAccurate", label: "I confirm that the information provided is accurate.", type: "confirm", required: true, full: true },
-      { key: "agreeRules", label: "I agree to follow Wolfgang Esports rules and regulations.", type: "confirm", required: true, full: true },
       { key: "understandNoGuarantee", label: "I understand that submitting this application does not guarantee acceptance.", type: "confirm", required: true, full: true },
       { key: "agreeConduct", label: "I agree to maintain professional behavior while representing Wolfgang Esports.", type: "confirm", required: true, full: true },
     ],
@@ -139,13 +133,29 @@ export const sectionsFor = (type: ApplicationType | "" | undefined) => SECTIONS.
 export type AnswerValue = string | string[] | boolean;
 export type Answers = Record<string, AnswerValue>;
 
-/** What the form sends: the type, the game and the answers. */
+/** A game choice, stored as "Platform|Game" (e.g. "PC|VALORANT", "Mobile|Other"). */
+export const pickKey = (platform: string, game: string) => `${platform}|${game}`;
+export const splitPick = (key: string) => {
+  const i = key.indexOf("|");
+  return { platform: key.slice(0, i), game: key.slice(i + 1) };
+};
+
+/** Individual players can apply for several games; a team applies for one. */
+export const MAX_GAMES = 10;
+export const multiGame = (type: ApplicationType | "") => type === "individual";
+
+/** What the form sends: the type, the chosen games and the answers. */
 export interface ApplicationInput {
   type: ApplicationType | "";
+  picks: string[];
+  /** Typed game name per platform, used when "Other" is picked on that platform. */
+  others: Record<string, string>;
+  answers: Answers;
+}
+
+export interface GameChoice {
   platform: string;
   game: string;
-  gameOther: string;
-  answers: Answers;
 }
 
 /** A stored application. */
@@ -153,11 +163,17 @@ export interface Application {
   id: string;
   submittedAt: string;
   type: ApplicationType;
+  /** Every chosen game (typed names in place of "Other"). */
+  games: GameChoice[];
+  /** Summaries for lists and the CSV, e.g. "PC, Mobile" and "VALORANT, PUBG Mobile". */
   platform: string;
-  /** The game name, with the typed name when "Other" was picked. */
   game: string;
   answers: Answers;
 }
+
+/** Games of an application (older records stored a single platform/game). */
+export const gamesOf = (a: Pick<Application, "games" | "platform" | "game">): GameChoice[] =>
+  a.games?.length ? a.games : [{ platform: a.platform, game: a.game }];
 
 const MAX = { text: 120, tel: 32, url: 300, textarea: 2000 } as const;
 
@@ -174,13 +190,28 @@ export function validateApplication(input: Partial<ApplicationInput>):
     return { ok: false, errors: { type: "Choose what you're applying for." } };
   }
 
-  const platform = String(input.platform ?? "");
-  const pick = String(input.game ?? "");
-  const other = String(input.gameOther ?? "").trim().slice(0, MAX.text);
-  let game = "";
-  if (!GAMES[platform]?.includes(pick)) errors.game = "Choose the game you're applying for.";
-  else if (pick === OTHER && !other) errors.game = "Type the name of the game.";
-  else game = pick === OTHER ? other : pick;
+  const picks = [...new Set(Array.isArray(input.picks) ? input.picks.map(String) : [])].filter((k) => {
+    const { platform, game } = splitPick(k);
+    return GAMES[platform]?.includes(game);
+  });
+  const others = input.others ?? {};
+  const games: GameChoice[] = [];
+  if (!picks.length) errors.game = multiGame(type) ? "Choose at least one game." : "Choose the game your team is applying for.";
+  else if (!multiGame(type) && picks.length > 1) errors.game = "A team can apply for one game only.";
+  else if (picks.length > MAX_GAMES) errors.game = `Choose up to ${MAX_GAMES} games.`;
+  else {
+    for (const k of picks) {
+      const { platform, game } = splitPick(k);
+      if (game === OTHER) {
+        const typed = String(others[platform] ?? "").trim().slice(0, MAX.text);
+        if (!typed) {
+          errors.game = `Type the name of the other ${platform} game.`;
+          break;
+        }
+        games.push({ platform, game: typed });
+      } else games.push({ platform, game });
+    }
+  }
 
   const raw = input.answers ?? {};
   const answers: Answers = {};
@@ -198,7 +229,16 @@ export function validateApplication(input: Partial<ApplicationInput>):
   }
 
   if (Object.keys(errors).length) return { ok: false, errors };
-  return { ok: true, data: { type, platform, game, answers } };
+  return {
+    ok: true,
+    data: {
+      type,
+      games,
+      platform: [...new Set(games.map((g) => g.platform))].join(", "),
+      game: games.map((g) => g.game).join(", "),
+      answers,
+    },
+  };
 }
 
 function isEmpty(v: unknown) {
@@ -269,7 +309,7 @@ export function csvColumns(): { key: string; label: string; get: (a: Application
     { key: "submittedAt", label: "Submitted (UTC)", get: (a: Application) => a.submittedAt.replace("T", " ").slice(0, 19) },
     { key: "type", label: "Applying as", get: (a: Application) => typeLabel(a.type) },
     { key: "platform", label: "Platform", get: (a: Application) => a.platform },
-    { key: "game", label: "Game", get: (a: Application) => a.game },
+    { key: "game", label: "Game(s)", get: (a: Application) => gamesOf(a).map((g) => g.game).join(", ") },
   ];
   const fields = SECTIONS.flatMap((s) =>
     s.fields.map((f) => ({ key: f.key, label: f.label, get: (a: Application) => formatAnswer(a.answers[f.key]) })),

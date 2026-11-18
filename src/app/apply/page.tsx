@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { PageHeader } from "@/components/site/page-header";
 import { ApplyForm } from "@/components/apply/apply-form";
 
 export const metadata: Metadata = {
@@ -10,16 +9,9 @@ export const metadata: Metadata = {
 
 export default function ApplyPage() {
   return (
-    <>
-      <PageHeader
-        index="06"
-        eyebrow="Apply"
-        title="Join the pack."
-        description="Players and teams who want to compete under the Wolfgang banner can apply here. It takes about ten minutes, and every application is reviewed by our team."
-      />
-      <section className="container-x py-16 sm:py-20">
-        <ApplyForm />
-      </section>
-    </>
+    <section className="container-x pt-32 pb-16 sm:pt-40 sm:pb-20">
+      <h1 className="sr-only">Apply to join Wolfgang e-Sports</h1>
+      <ApplyForm />
+    </section>
   );
 }
