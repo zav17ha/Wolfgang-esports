@@ -66,9 +66,10 @@ export function ApplyForm() {
   const liveErrors = check.ok ? {} : check.errors;
   const errors = showErrors ? { ...serverErrors, ...liveErrors } : {};
 
-  const setAnswer = (key: string, v: AnswerValue) => {
+  /** Accepts a value, or an updater based on the latest value (so quick repeated clicks never overwrite each other). */
+  const setAnswer = (key: string, v: AnswerValue | ((prev: AnswerValue | undefined) => AnswerValue)) => {
     setServerErrors((e) => ({ ...e, [key]: "" }));
-    setD((p) => ({ ...p, answers: { ...p.answers, [key]: v } }));
+    setD((p) => ({ ...p, answers: { ...p.answers, [key]: typeof v === "function" ? v(p.answers[key]) : v } }));
   };
 
   const sectionDone = (s: Section) => s.fields.every((f) => !liveErrors[f.key]);
@@ -346,7 +347,17 @@ function ErrorText({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FieldInput({ f, value, error, onChange }: { f: Field; value: AnswerValue | undefined; error?: string; onChange: (v: AnswerValue) => void }) {
+function FieldInput({
+  f,
+  value,
+  error,
+  onChange,
+}: {
+  f: Field;
+  value: AnswerValue | undefined;
+  error?: string;
+  onChange: (v: AnswerValue | ((prev: AnswerValue | undefined) => AnswerValue)) => void;
+}) {
   const id = `in-${f.key}`;
   const border = error ? "border-red-400/60" : "border-white/10";
   const label = (
@@ -406,7 +417,12 @@ function FieldInput({ f, value, error, onChange }: { f: Field; value: AnswerValu
                 key={o}
                 type="button"
                 aria-pressed={on}
-                onClick={() => onChange(on ? list.filter((x) => x !== o) : [...list, o])}
+                onClick={() =>
+                  onChange((prev) => {
+                    const cur = Array.isArray(prev) ? prev : [];
+                    return cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o];
+                  })
+                }
                 className={cn(chipBase, on ? chipOn : chipOff)}
               >
                 {on && <Check className="size-3.5" />}
