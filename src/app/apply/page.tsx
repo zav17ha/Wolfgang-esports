@@ -5,6 +5,8 @@ import { ApplyForm } from "@/components/apply/apply-form";
 export const metadata: Metadata = {
   title: "Apply",
   description: "Apply to join Wolfgang e-Sports as an individual player or as an existing team.",
+  // Not linked from the site and kept out of search results: share the link directly.
+  robots: { index: false, follow: false },
 };
 
 export default function ApplyPage() {

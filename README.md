@@ -12,7 +12,7 @@ The official website for **Wolfgang e-Sports** (Sri Lanka). It's built with Next
 | `/merch` | Official merch: coming soon |
 | `/blog`, `/blog/[slug]` | Stories |
 | `/contact` | Email, Instagram, Facebook and contact form |
-| `/apply` | **Recruitment form** for individual players and existing teams |
+| `/apply` | **Recruitment form** for individual players and existing teams. Not shown in the menu or search results; share the link directly |
 | `/admin` | **Admin** (username and password): blog posts, plus the **Applications** inbox with CSV download |
 
 ## Develop

@@ -25,5 +25,4 @@ export const nav: { href: string; label: string; soon?: boolean }[] = [
   { href: "/merch", label: "Merch", soon: true },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
-  { href: "/apply", label: "Apply" },
 ];
