@@ -51,3 +51,31 @@ export function DeleteButton({ slug, title }: { slug: string; title: string }) {
     </button>
   );
 }
+
+export function DeleteApplicationButton({ id, name }: { id: string; name: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-9"
+      disabled={busy}
+      onClick={async () => {
+        if (!window.confirm(`Delete the application from ${name} (${id})? This can't be undone.`)) return;
+        setBusy(true);
+        const res = await fetch(`/api/admin/applications/${encodeURIComponent(id)}`, { method: "DELETE" });
+        setBusy(false);
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          window.alert(j.error || "Could not delete the application.");
+          return;
+        }
+        router.refresh();
+      }}
+    >
+      <Trash2 /> Delete
+    </Button>
+  );
+}

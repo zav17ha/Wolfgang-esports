@@ -2,18 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { del, list, put } from "@vercel/blob";
 import type { PostInput } from "./format";
+import { StorageError, blobAuth, storageMode } from "./blob";
 
 /**
- * Where posts written from the admin dashboard are saved.
- *
- * - "blob":  Vercel Blob (used on Vercel's read-only filesystem). Connecting a Blob store to the project
- *            gives the site one of: BLOB_READ_WRITE_TOKEN, a token under a custom prefix
- *            (e.g. MYSTORE_READ_WRITE_TOKEN), or BLOB_STORE_ID (Vercel's newer OIDC sign-in). All work.
- * - "local": when running on your own computer, posts are written straight into content/posts/*.md
- *            and images into public/uploads/, so you can commit them to Git.
- * - "none":  deployed without a Blob store; publishing is disabled with a clear message.
+ * Where posts written from the admin dashboard are saved (see ./blob for the storage modes):
+ * Vercel Blob when hosted, or content/posts/*.md and public/uploads/ when running locally.
  */
-export type StorageMode = "blob" | "local" | "none";
+export { StorageError, storageMode };
+export type { StorageMode } from "./blob";
 
 export interface StoredPost extends PostInput {
   updatedAt: string;
@@ -21,32 +17,9 @@ export interface StoredPost extends PostInput {
   hidden?: boolean;
 }
 
-/** A Blob read-write token, wherever Vercel put it (default name, or a custom prefix chosen on connect). */
-function blobToken(): string | undefined {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
-  for (const [k, v] of Object.entries(process.env)) {
-    if (k.endsWith("_READ_WRITE_TOKEN") && v?.startsWith("vercel_blob_rw_")) return v;
-  }
-  return undefined;
-}
-
-/** Credentials passed to every Blob call. With BLOB_STORE_ID only, the SDK signs in via Vercel OIDC by itself. */
-function blobAuth(): { token?: string } {
-  const token = blobToken();
-  return token && !process.env.BLOB_READ_WRITE_TOKEN ? { token } : {};
-}
-
-export function storageMode(): StorageMode {
-  if (blobToken() || process.env.BLOB_STORE_ID) return "blob";
-  if (!process.env.VERCEL) return "local";
-  return "none";
-}
-
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const BLOB_PREFIX = "posts/";
-
-export class StorageError extends Error {}
 
 function assertWritable() {
   if (storageMode() === "none") {

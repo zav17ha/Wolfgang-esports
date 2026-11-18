@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/format";
 import { storageMode } from "@/lib/post-store";
 import { Button } from "@/components/ui/button";
 import { DeleteButton, LogoutButton } from "@/components/admin/admin-actions";
+import { AdminNav } from "@/components/admin/admin-nav";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export default async function AdminPage() {
 
   return (
     <>
+      <AdminNav />
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="hud-label">{"// Blog admin"}</p>

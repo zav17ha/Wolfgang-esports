@@ -44,3 +44,6 @@ nemesis-esports.zip
 
 # local tooling
 .claude/
+
+# applicant data saved when running locally (never commit)
+/data/

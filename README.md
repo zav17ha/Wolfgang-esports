@@ -12,7 +12,8 @@ The official website for **Wolfgang e-Sports** (Sri Lanka). It's built with Next
 | `/merch` | Official merch: coming soon |
 | `/blog`, `/blog/[slug]` | Stories |
 | `/contact` | Email, Instagram, Facebook and contact form |
-| `/admin` | **Blog admin** (username and password): write, edit, publish, delete posts and upload cover images |
+| `/apply` | **Recruitment form** for individual players and existing teams |
+| `/admin` | **Admin** (username and password): blog posts, plus the **Applications** inbox with CSV download |
 
 ## Develop
 
@@ -56,6 +57,25 @@ Where posts are saved:
 
 The Markdown files in `content/posts/` always ship with the site. A post saved from the admin with the same URL replaces it, and deleting one from the admin hides it.
 
+## Player & team applications
+
+The **/apply** page first asks whether someone is applying as an **Individual Player** or an **Existing Team**, then shows the rest of the form (the Team section only appears for teams). Progress is saved in the applicant's browser until they submit.
+
+Submitted applications appear in **/admin → Applications**:
+
+- Filter by type and game, and click an application to see every answer (with a WhatsApp button).
+- **Download CSV** exports the applications currently shown (all of them, or just the filtered ones). It opens in Excel or Google Sheets.
+- Delete applications you no longer need.
+
+Where applications are saved:
+
+| Where the site runs | Storage |
+| --- | --- |
+| Vercel with a Blob store | Private files in Vercel Blob (`applications/`), readable only by the site |
+| Your computer (`npm run dev`) | `data/applications/*.json` (git-ignored, so applicants' details are never committed) |
+
+All the questions are defined in one place, `src/lib/apply.ts`. Editing a question there updates the form, the checks, the admin view and the CSV together.
+
 ## Editing content
 
 | What | Where |
@@ -79,7 +99,9 @@ The Markdown files in `content/posts/` always ship with the site. A post saved f
 src/
   app/                 routes, layout, page transition, API routes, sitemap, robots
   app/admin/           blog admin (login, dashboard, editor)
-  app/api/admin/       admin API: login, logout, posts, image upload
+  app/apply/           player & team application form
+  app/api/apply/       receives applications
+  app/api/admin/       admin API: login, logout, posts, image upload, applications (delete, CSV export)
   components/          ui (shadcn), site, home, admin, motion
   lib/                 site config, achievements, posts, post storage, auth
   middleware.ts        protects /admin and /api/admin
